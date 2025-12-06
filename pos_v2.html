@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriStack PoS - Digital Agriculture Mission</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;700&display=swap');
+        
+        body { font-family: 'Inter', 'Noto Sans Devanagari', sans-serif; background-color: #f3f4f6; }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes pulse-ring { 0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); } 100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); } }
+        @keyframes scan-line { 0% { top: 0%; } 50% { top: 100%; } 100% { top: 0%; } }
+
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
+        .animate-pulse-ring { animation: pulse-ring 2s infinite; }
+        .animate-scan { animation: scan-line 2s linear infinite; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- ICON SYSTEM ---
+        const IconWrapper = ({ children, size = 24, className = "", ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
+        );
+
+        // --- ICONS ---
+        const Store = (p) => <IconWrapper {...p}><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12v0a2 2 0 0 1-2-2V7"/></IconWrapper>;
+        const ShoppingCart = (p) => <IconWrapper {...p}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></IconWrapper>;
+        const TrendingUp = (p) => <IconWrapper {...p}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></IconWrapper>;
+        const User = (p) => <IconWrapper {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></IconWrapper>;
+        const History = (p) => <IconWrapper {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12"/><path d="M3 3v9h9"/><path d="M12 7v5l3 3"/></IconWrapper>;
+        const Globe = (p) => <IconWrapper {...p}><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></IconWrapper>;
+        const MapPin = (p) => <IconWrapper {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></IconWrapper>;
+        const Phone = (p) => <IconWrapper {...p}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.12 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></IconWrapper>;
+        const FileText = (p) => <IconWrapper {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></IconWrapper>;
+        const Clock = (p) => <IconWrapper {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></IconWrapper>;
+        const ChevronRight = (p) => <IconWrapper {...p}><path d="m9 18 6-6-6-6"/></IconWrapper>;
+        const ArrowRight = (p) => <IconWrapper {...p}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></IconWrapper>;
+        const ArrowLeft = (p) => <IconWrapper {...p}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></IconWrapper>;
+        const Search = (p) => <IconWrapper {...p}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></IconWrapper>;
+        const LogOut = (p) => <IconWrapper {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></IconWrapper>;
+        const ShieldCheck = (p) => <IconWrapper {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></IconWrapper>;
+        const Scan = (p) => <IconWrapper {...p}><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></IconWrapper>;
+        const Fingerprint = (p) => <IconWrapper {...p}><path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 6"/><path d="M5 15.1A2 2 0 0 1 9.5 13a2.5 2.5 0 0 1 5 0 2 2 0 0 1 4.5 2.1"/><path d="M12 9.5a1.5 1.5 0 0 1 3 0 1.5 1.5 0 0 1 3 0 1.5 1.5 0 0 1 3 0"/><path d="M9 19.5v-3.2a2 2 0 0 1 1.2-1.9 2 2 0 0 1 2.8 0 2 2 0 0 1 1.2 1.9v3.2a2 2 0 0 1-2 2h-1.2a2 2 0 0 1-2-2z"/></IconWrapper>;
+        const Lock = (p) => <IconWrapper {...p}><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></IconWrapper>;
+        const Bell = (p) => <IconWrapper {...p}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></IconWrapper>;
+        const Share2 = (p) => <IconWrapper {...p}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></IconWrapper>;
+        const CheckCircle = (p) => <IconWrapper {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></IconWrapper>;
+        const AlertCircle = (p) => <IconWrapper {...p}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconWrapper>;
+        const MessageSquare = (p) => <IconWrapper {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></IconWrapper>;
+        const Keypad = (p) => <IconWrapper {...p}><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></IconWrapper>;
+        const QrCode = (p) => <IconWrapper {...p}><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></IconWrapper>;
+        const CreditCard = (p) => <IconWrapper {...p}><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></IconWrapper>;
+        const Download = (p) => <IconWrapper {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></IconWrapper>;
+        const Smartphone = (p) => <IconWrapper {...p}><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></IconWrapper>;
+        const Landmark = (p) => <IconWrapper {...p}><line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/></IconWrapper>;
+        const Leaf = (p) => <IconWrapper {...p}><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.77 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></IconWrapper>;
+
+        // --- MOCK DATA ---
+
+        const MARKET_DATA = [
+            { id: 1, name: "Wheat (Sharbati)", price: 2125, unit: "Qtl", trend: "up", maxYieldPerAcre: 18 },
+            { id: 2, name: "Rice (Basmati)", price: 3850, unit: "Qtl", trend: "stable", maxYieldPerAcre: 22 },
+            { id: 3, name: "Cotton (Long)", price: 6200, unit: "Qtl", trend: "down", maxYieldPerAcre: 10 },
+            { id: 4, name: "Soybean", price: 4800, unit: "Qtl", trend: "up", maxYieldPerAcre: 8 },
+            { id: 5, name: "Mustard", price: 5450, unit: "Qtl", trend: "up", maxYieldPerAcre: 12 },
+        ];
+
+        const INPUT_INVENTORY = [
+            { id: 101, name: "Urea (Neem Coated)", price: 266, unit: "Bag (45kg)", type: "fertilizer", isDBT: true, recommendedSoil: ["Alluvial", "Clay", "Loam"] },
+            { id: 102, name: "DAP Fertilizer", price: 1350, unit: "Bag (50kg)", type: "fertilizer", isDBT: true, recommendedSoil: ["Alluvial", "Clay", "Loam"] },
+            // Maize: Set to Black/Red to trigger warning for Alluvial user
+            { id: 103, name: "Hybrid Maize Seeds", price: 450, unit: "Packet (1kg)", type: "seed", isDBT: false, recommendedSoil: ["Black", "Red"] }, 
+            { id: 104, name: "Pesticide (Generic)", price: 800, unit: "Litre", type: "chemical", isDBT: false },
+        ];
+
+        const GOV_SCHEMES_LIST = [
+            { id: 1, title: "PM-KISAN", desc: "Income support of ₹6,000 per year in 3 installments.", status: "Eligible" },
+            { id: 2, title: "Kisan Credit Card (KCC)", desc: "Short term credit for crops at low interest rates.", status: "Apply Now" },
+            { id: 3, title: "Pradhan Mantri Fasal Bima Yojana", desc: "Crop insurance against non-preventable natural risks.", status: "Apply Now" },
+            { id: 4, title: "Soil Health Card", desc: "Crop-wise recommendations of nutrients.", status: "Applied" },
+        ];
+
+        const FARMER_DB = [
+            { 
+                id: "AGRI-MP-123456", name: "Rajesh Kumar", district: "Vidisha", state: "Madhya Pradesh", 
+                creditScore: 720, phone: "+91 98765 43210", panchayat: "Khamkheda",
+                kccLimit: 50000, kccUsed: 12000, shcStatus: "Active",
+                ulpin: "MP-1104-5502-0012", landArea: 2.5, soilType: "Alluvial",
+                history: [
+                    { id: 101, type: 'buy', items: [{ name: "Urea", qty: 2 }], total: 532, date: "2023-11-15T10:30:00" },
+                    { id: 102, type: 'sell', items: [{ name: "Wheat", qty: 10 }], total: 21250, date: "2023-10-20T14:15:00" }
+                ]
+            },
+            { 
+                id: "AGRI-MP-123457", name: "Suresh Singh", district: "Sehore", state: "Madhya Pradesh", 
+                creditScore: 680, phone: "+91 98765 11223", panchayat: "Khamkheda",
+                kccLimit: 120000, kccUsed: 118000, shcStatus: "Expired",
+                ulpin: "MP-1104-5502-8877", landArea: 5.0, soilType: "Black",
+                history: [
+                    { id: 201, type: 'buy', items: [{ name: "DAP Fertilizer", qty: 5 }], total: 6750, date: "2023-11-10T09:00:00" }
+                ]
+            }
+        ];
+
+        // --- HELPER COMPONENT: NOTIFICATION TOAST ---
+        const Notification = ({ message, type, onClose }) => (
+            <div className={`fixed top-4 left-4 right-4 p-4 rounded-xl shadow-lg z-[100] flex items-center gap-3 animate-slide-up ${type === 'error' ? 'bg-red-50 border border-red-200 text-red-800' : 'bg-green-50 border border-green-200 text-green-800'}`}>
+                {type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
+                <p className="text-sm font-bold flex-1">{message}</p>
+                <button onClick={onClose} className="text-gray-400 font-bold">X</button>
+            </div>
+        );
+
+        // --- Helper Components ---
+
+        const Avatar = ({ name, size = "md", className = "" }) => {
+            const initials = name ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : "U";
+            const colors = ['bg-blue-100 text-blue-700', 'bg-green-100 text-green-700', 'bg-purple-100 text-purple-700', 'bg-amber-100 text-amber-700'];
+            const colorClass = colors[name.length % colors.length];
+            const sizeClasses = size === "xl" ? "w-24 h-24 text-3xl" : size === "lg" ? "w-16 h-16 text-xl" : size === "sm" ? "w-10 h-10 text-xs" : "w-14 h-14 text-lg";
+            return <div className={`${sizeClasses} ${colorClass} rounded-full flex items-center justify-center font-bold border-2 border-white shadow-sm shrink-0 ${className}`}>{initials}</div>;
+        };
+
+        const Card = ({ children, className = "" }) => (
+            <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-5 ${className}`}>{children}</div>
+        );
+
+        const Header = ({ officerMode, onLogout }) => (
+            <div className={`p-4 sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 ${officerMode ? 'bg-[#003366] text-white' : 'bg-white'}`}>
+                <div className="flex items-center gap-3">
+                    <div className="flex flex-col items-center justify-center w-8">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="Emblem" className={`w-6 h-auto ${officerMode ? 'brightness-0 invert' : 'opacity-80'}`} onError={(e) => e.target.style.display = 'none'} />
+                    </div>
+                    <div>
+                        <h1 className={`font-bold text-lg leading-none tracking-tight ${officerMode ? 'text-white' : 'text-[#003366]'}`}>
+                            {officerMode ? 'Officer Assist Mode' : 'Point of Sale App'}
+                        </h1>
+                        <p className={`text-[10px] font-medium ${officerMode ? 'text-blue-200' : 'text-gray-500'}`}>Government of India</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium active:bg-gray-200 transition-colors ${officerMode ? 'bg-blue-800 text-white border border-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                        <Globe size={14} /> EN/हिंदी
+                    </button>
+                    {onLogout && <button onClick={onLogout} className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600"><LogOut size={16} /></button>}
+                </div>
+            </div>
+        );
+
+        const Navigation = ({ activeTab, setActiveTab }) => {
+            const tabs = [
+                { id: 'dashboard', icon: Store, label: 'Home' },
+                { id: 'pos', icon: ShoppingCart, label: 'Transact' },
+                { id: 'market', icon: TrendingUp, label: 'Mandi' },
+                { id: 'profile', icon: User, label: 'Profile' },
+            ];
+            return (
+                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe z-50 max-w-md mx-auto">
+                    <div className="flex justify-around items-center h-16">
+                        {tabs.map((tab) => {
+                            const IconComp = tab.icon;
+                            return (
+                                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${activeTab === tab.id ? 'text-[#003366] font-semibold' : 'text-gray-400 hover:text-gray-600'}`}>
+                                    <div className={`mb-1 transition-transform ${activeTab === tab.id ? 'scale-110' : ''}`}><IconComp size={24} strokeWidth={activeTab === tab.id ? 2.5 : 2} /></div>
+                                    <span className="text-[10px] uppercase tracking-wide">{tab.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MODALS ---
+
+        const QRScannerModal = ({ onClose, onScan }) => {
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    const randomItem = INPUT_INVENTORY[Math.floor(Math.random() * INPUT_INVENTORY.length)];
+                    onScan(randomItem);
+                }, 2500);
+                return () => clearTimeout(timer);
+            }, []);
+
+            return (
+                <div className="fixed inset-0 z-[70] bg-black flex flex-col items-center justify-center animate-fade-in">
+                    <button onClick={onClose} className="absolute top-4 right-4 text-white bg-white/10 p-2 rounded-full"><LogOut size={24} className="rotate-180" /></button>
+                    <div className="relative w-64 h-64 border-2 border-green-400 rounded-lg overflow-hidden mb-8">
+                        <div className="absolute inset-0 bg-white/10"></div>
+                        <div className="absolute w-full h-1 bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)] animate-scan"></div>
+                        <div className="absolute bottom-2 left-0 right-0 text-center text-green-400 text-xs font-mono">SCANNING SKU...</div>
+                    </div>
+                    <p className="text-white text-sm animate-pulse">Align Product QR code within frame</p>
+                </div>
+            );
+        };
+
+        const ComplianceModal = ({ cart, farmer, onConfirm, onClose }) => {
+            const [step, setStep] = useState(1);
+            const [crop, setCrop] = useState('');
+            const [processing, setProcessing] = useState(false);
+            
+            const hasFertilizer = cart.some(i => i.isDBT);
+            const shcValid = farmer?.shcStatus === "Active";
+
+            const runChecks = () => {
+                setProcessing(true);
+                setTimeout(() => { setProcessing(false); setStep(2); }, 1500);
+            };
+
+            return (
+                <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    <div className="bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-sm animate-slide-up">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-lg text-[#003366]">Scientific Compliance Check</h3>
+                            <button onClick={onClose} className="text-gray-400">X</button>
+                        </div>
+                        {step === 1 && (
+                            <div className="space-y-4">
+                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                    <h4 className="text-sm font-bold text-blue-900 mb-2">Analyzing Cart Compliance...</h4>
+                                    <ul className="space-y-2">
+                                        <li className="flex items-center gap-2 text-sm text-gray-700">
+                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center ${hasFertilizer ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>
+                                                {hasFertilizer ? <AlertCircle size={10} /> : <CheckCircle size={10} />}
+                                            </div>
+                                            DBT Items: {hasFertilizer ? "Found (Urea/DAP)" : "None"}
+                                        </li>
+                                        <li className="flex items-center gap-2 text-sm text-gray-700">
+                                            <div className="w-4 h-4 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><Fingerprint size={10} /></div>
+                                            Auth: {hasFertilizer ? "Biometric Required" : "Standard"}
+                                        </li>
+                                    </ul>
+                                </div>
+                                <button onClick={runChecks} disabled={processing} className="w-full bg-[#003366] text-white py-3 rounded-xl font-bold flex justify-center gap-2">
+                                    {processing ? "Connecting to SHC Server..." : "Run Advisory Check"}
+                                </button>
+                            </div>
+                        )}
+                        {step === 2 && (
+                            <div className="space-y-4 animate-fade-in">
+                                <div className={`p-4 rounded-xl border ${shcValid ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className={`text-xs font-bold uppercase ${shcValid ? 'text-green-700' : 'text-red-700'}`}>Soil Health Card</p>
+                                            <p className="text-sm font-bold text-gray-800">{shcValid ? "Recommendations Matched" : "SHC Expired / Invalid"}</p>
+                                        </div>
+                                        {shcValid ? <CheckCircle className="text-green-600" /> : <AlertCircle className="text-red-600" />}
+                                    </div>
+                                    {shcValid && <p className="text-xs text-gray-500 mt-2">Purchase within N-P-K limits.</p>}
+                                </div>
+                                {hasFertilizer && (
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-700 mb-1 block">Crop Intention (Geo-tagging)</label>
+                                        <select value={crop} onChange={e => setCrop(e.target.value)} className="w-full border p-3 rounded-xl text-sm bg-white focus:ring-2 focus:ring-[#003366] outline-none">
+                                            <option value="">Select Crop...</option>
+                                            <option value="wheat">Wheat (Rabi)</option>
+                                            <option value="paddy">Paddy</option>
+                                            <option value="maize">Maize</option>
+                                        </select>
+                                    </div>
+                                )}
+                                <button onClick={() => onConfirm(crop)} disabled={hasFertilizer && !crop} className={`w-full py-3 rounded-xl font-bold ${hasFertilizer && !crop ? 'bg-gray-200 text-gray-400' : 'bg-green-600 text-white shadow-lg shadow-green-200'}`}>
+                                    Proceed to Payment
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const ReceiptModal = ({ transaction, onClose, user }) => {
+            if (!transaction) return null;
+            const { type, items, total, officerMode, paymentMethod } = transaction;
+            
+            let statusMessage = "";
+            let subMessage = "";
+
+            if (type === 'buy') {
+                if (paymentMethod === 'cash') {
+                    statusMessage = officerMode ? "Cash Received from Farmer" : "Pay Cash at Store Counter";
+                    subMessage = "Receipt of payment for inputs.";
+                } else if (paymentMethod === 'kcc') {
+                    statusMessage = "Debited from KCC Limit";
+                    subMessage = "Loan account updated.";
+                } else {
+                    statusMessage = "Online Payment Successful";
+                    subMessage = "Transaction ID verified.";
+                }
+            } else {
+                if (paymentMethod === 'cash') {
+                    statusMessage = "Cash Paid to Farmer";
+                    subMessage = officerMode ? "Cash handed over physically." : "Please collect cash from the counter.";
+                } else if (paymentMethod === 'dbt') {
+                    statusMessage = "DBT Transfer Initiated";
+                    subMessage = "Amount will reflect in bank A/C in 24hrs.";
+                }
+            }
+
+            return (
+                <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white w-full max-w-sm rounded-3xl p-6 relative">
+                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-20 h-20 bg-green-500 rounded-full flex items-center justify-center border-4 border-white shadow-xl">
+                            <CheckCircle className="text-white" size={40} />
+                        </div>
+                        <div className="mt-8 text-center">
+                            <h2 className="text-xl font-bold text-gray-800">{type === 'buy' ? 'Tax Invoice' : 'Bill of Sale / Voucher'}</h2>
+                            <p className="text-xs text-gray-400 font-mono mb-4">TXN-{transaction.id}</p>
+                            
+                            <div className="bg-green-50 border border-green-100 rounded-xl p-3 mb-4">
+                                <p className="text-sm font-bold text-green-800">{statusMessage}</p>
+                                <p className="text-[10px] text-green-600 mt-1">{subMessage}</p>
+                            </div>
+
+                            <div className="bg-gray-50 rounded-xl p-4 mb-4 text-left max-h-40 overflow-auto border border-gray-100">
+                                {items.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between text-sm mb-1">
+                                        <span className="text-gray-600">{item.name} x{item.qty}</span>
+                                        <span className="font-bold">₹{item.price * item.qty}</span>
+                                    </div>
+                                ))}
+                                <div className="border-t border-dashed border-gray-300 my-2"></div>
+                                <div className="flex justify-between font-bold text-lg">
+                                    <span>Total Amount</span>
+                                    <span>₹{total.toLocaleString()}</span>
+                                </div>
+                            </div>
+
+                            {type === 'sell' && (
+                                <div className="text-[10px] text-gray-600 text-left mb-4 bg-yellow-50 p-2 rounded border border-yellow-100">
+                                    <p className="font-bold mb-1 uppercase text-yellow-800">Legal Declaration:</p>
+                                    <p>I, <b>{user?.name || 'Farmer'}</b>, holding ULPIN <b>{user?.ulpin}</b>, confirm that I have sold the above produce grown on my land and received <b>₹{total.toLocaleString()}</b> via {paymentMethod === 'cash' ? 'CASH' : 'DBT'} from the Mandi.</p>
+                                </div>
+                            )}
+
+                            <button onClick={onClose} className="w-full bg-[#003366] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+                                <Download size={18} /> Save Document
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const PaymentModeModal = ({ mode, amount, user, onSelect, onClose, isOfficerMode }) => {
+            const [showQR, setShowQR] = useState(false);
+            const kccAvailable = user ? user.kccLimit - user.kccUsed : 0;
+
+            if (showQR) {
+                return (
+                    <div className="fixed inset-0 z-[70] bg-black/80 flex flex-col items-center justify-center p-4 animate-fade-in">
+                        <div className="bg-white p-6 rounded-3xl w-full max-w-xs text-center">
+                            <h3 className="font-bold text-lg mb-2">Scan to Pay</h3>
+                            <p className="text-xs text-gray-500 mb-4">Ask farmer to scan with any UPI App</p>
+                            <div className="bg-gray-100 p-4 rounded-xl mb-4">
+                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=agristack@sbi&pn=AgriPoS&am=${amount}`} alt="QR" className="mx-auto w-48 h-48 mix-blend-multiply opacity-90" />
+                            </div>
+                            <p className="font-bold text-xl text-[#003366] mb-6">₹{amount.toLocaleString()}</p>
+                            <button onClick={() => onSelect('online')} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold">
+                                Confirm Payment Received
+                            </button>
+                            <button onClick={() => setShowQR(false)} className="mt-3 text-sm text-gray-400">Cancel</button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    <div className="bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-sm animate-slide-up">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-800">Select Payment Mode</h3>
+                                <p className="text-xs text-gray-500">Total Amount: <span className="font-bold text-gray-800 text-sm">₹{amount.toLocaleString()}</span></p>
+                            </div>
+                            <button onClick={onClose} className="bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200">X</button>
+                        </div>
+
+                        <div className="space-y-3">
+                            {mode === 'buy' ? (
+                                <>
+                                    {/* KCC Button */}
+                                    <button onClick={() => { if(amount <= kccAvailable) onSelect('kcc'); }} disabled={amount > kccAvailable} className={`w-full p-4 rounded-xl border-2 flex items-center gap-4 ${amount > kccAvailable ? 'bg-gray-50 border-gray-100 opacity-60' : 'bg-blue-50 border-blue-200 active:bg-blue-100'}`}>
+                                        <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center"><CreditCard size={20} /></div>
+                                        <div className="text-left flex-1">
+                                            <p className="font-bold text-blue-900">Kisan Credit Card (KCC)</p>
+                                            <p className="text-xs text-blue-600">Available: ₹{kccAvailable.toLocaleString()}</p>
+                                        </div>
+                                        {amount > kccAvailable && <span className="text-[10px] text-red-500 font-bold">Low Limit</span>}
+                                    </button>
+
+                                    {/* Online/QR Button */}
+                                    <button onClick={() => isOfficerMode ? setShowQR(true) : onSelect('online')} className="w-full p-4 rounded-xl border-2 border-gray-100 hover:border-[#003366] bg-white flex items-center gap-4 group transition-all">
+                                        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center"><Smartphone size={20} /></div>
+                                        <div className="text-left flex-1">
+                                            <p className="font-bold text-gray-800 group-hover:text-[#003366]">Online / UPI</p>
+                                            <p className="text-xs text-gray-500">{isOfficerMode ? "Generate QR for Farmer" : "Pay & Collect at Store"}</p>
+                                        </div>
+                                    </button>
+
+                                    {/* Cash Button (Officer Only) */}
+                                    {isOfficerMode && (
+                                        <button onClick={() => onSelect('cash')} className="w-full p-4 rounded-xl border-2 border-gray-100 hover:border-[#003366] bg-white flex items-center gap-4 group transition-all">
+                                            <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold">₹</div>
+                                            <div className="text-left flex-1">
+                                                <p className="font-bold text-gray-800 group-hover:text-[#003366]">Cash Received</p>
+                                                <p className="text-xs text-gray-500">Collect cash from farmer</p>
+                                            </div>
+                                        </button>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    {/* DBT Selling */}
+                                    <button onClick={() => onSelect('dbt')} className="w-full p-4 rounded-xl border-2 border-green-100 bg-green-50/50 flex items-center gap-4 relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 bg-green-600 text-white text-[10px] px-2 py-0.5 rounded-bl-lg font-bold">RECOMMENDED</div>
+                                        <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center"><Landmark size={20} /></div>
+                                        <div className="text-left flex-1">
+                                            <p className="font-bold text-green-900">Direct Benefit Transfer</p>
+                                            <p className="text-xs text-green-700">Credit directly to Farmer's Bank A/C</p>
+                                        </div>
+                                        <CheckCircle size={20} className="text-green-600" />
+                                    </button>
+                                    
+                                    {/* Cash Selling (Officer Only) */}
+                                    <button onClick={() => onSelect('cash')} className="w-full p-4 rounded-xl border-2 border-gray-100 hover:border-orange-500 bg-white flex items-center gap-4 group transition-all">
+                                        <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center font-bold">₹</div>
+                                        <div className="text-left flex-1">
+                                            <p className="font-bold text-gray-800 group-hover:text-orange-600">
+                                                {isOfficerMode ? "Cash Handover" : "Cash (Collect at Store)"}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                {isOfficerMode ? "Physically pay farmer" : "Receive cash at counter"}
+                                            </p>
+                                        </div>
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const PortalHeader = ({ onBack }) => (
+            <div className="bg-white p-4 shadow-sm flex items-center justify-between sticky top-0 z-50">
+                <div className="flex items-center gap-3">
+                    <button onClick={onBack} className="text-gray-600 flex items-center justify-center p-1 rounded-full hover:bg-gray-100 transition-colors">
+                        <ArrowLeft size={24} />
+                    </button>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="Emblem" className="w-8 h-auto opacity-90" />
+                    <h1 className="text-sm font-bold text-gray-700 uppercase leading-tight tracking-wide">Common Registration Portal</h1>
+                </div>
+                <div className="flex gap-4 text-gray-600"><Bell size={20} /><Share2 size={20} /><Search size={20} /></div>
+            </div>
+        );
+
+        const PortalSchemesView = ({ onBack }) => (
+            <div className="min-h-screen bg-white animate-fade-in flex flex-col font-sans pb-8">
+                <PortalHeader onBack={onBack} />
+                <div className="p-4 bg-gray-50">
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">Available Schemes</h2>
+                    <p className="text-sm text-gray-500 mb-6">Based on your land record & profile</p>
+                    <div className="space-y-4">
+                        {GOV_SCHEMES_LIST.map(scheme => (
+                            <div key={scheme.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                <div className="flex justify-between items-start mb-2">
+                                    <h3 className="font-bold text-blue-900">{scheme.title}</h3>
+                                    {scheme.status === "Eligible" && <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded">Eligible</span>}
+                                    {scheme.status === "Applied" && <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded">Applied</span>}
+                                </div>
+                                <p className="text-sm text-gray-600 mb-4">{scheme.desc}</p>
+                                {scheme.status === "Apply Now" || scheme.status === "Eligible" ? (
+                                    <button className="w-full py-2 bg-blue-600 text-white font-bold rounded-lg text-sm active:bg-blue-700">Apply Now</button>
+                                ) : (
+                                    <button className="w-full py-2 bg-gray-100 text-gray-500 font-bold rounded-lg text-sm" disabled>View Application</button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+
+        const PortalDashboardView = ({ userProfile, onBack, onNavigateToStatus, onNavigateToSchemes }) => {
+            return (
+                <div className="min-h-screen bg-white animate-fade-in flex flex-col font-sans">
+                    <div className="bg-gray-800 text-white px-4 py-2 flex justify-between items-center text-[10px] tracking-wide">
+                        <div><p>Government of India |</p><p>Ministry of Agriculture & Farmers Welfare</p></div>
+                        <div className="flex gap-3 text-gray-300"><span className="font-bold text-white">English / हिंदी</span></div>
+                    </div>
+                    <PortalHeader onBack={onBack} />
+                    <div className="bg-[#003366] text-white pt-6 pb-20 px-6 relative rounded-b-[2.5rem] overflow-visible">
+                         <div className="flex justify-between items-start">
+                            <div>
+                                <h1 className="text-2xl font-bold">Welcome, {userProfile ? userProfile.name.split(' ')[0] : 'User'}!</h1>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <p className="text-blue-200 text-sm">ID: {userProfile ? userProfile.id : '...'}</p>
+                                    <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse"></div>
+                                </div>
+                            </div>
+                            <div className="w-16 h-16 rounded-full border-2 border-white p-0.5 relative">
+                                 <Avatar name={userProfile ? userProfile.name : 'U'} size="full" className="w-full h-full rounded-full border-0" />
+                            </div>
+                         </div>
+                    </div>
+                    <div className="px-4 -mt-12 relative z-20">
+                        <div className="bg-white rounded-xl shadow-lg p-2 flex justify-between items-center text-center">
+                             <div className="flex-1 py-3 bg-blue-50 rounded-lg mx-1">
+                                 <div className="flex justify-center mb-1 text-blue-800"><User size={20} /></div>
+                                 <span className="text-[10px] font-bold text-blue-900">My Profile</span>
+                             </div>
+                             <div className="w-[1px] h-8 bg-gray-200"></div>
+                             <button onClick={onNavigateToSchemes} className="flex-1 py-3 mx-1 active:bg-gray-50 rounded-lg transition-colors hover:bg-gray-50">
+                                 <div className="flex justify-center mb-1 text-gray-600"><FileText size={20} /></div>
+                                 <span className="text-[10px] font-medium text-gray-700">Apply<br/>Schemes</span>
+                             </button>
+                             <div className="w-[1px] h-8 bg-gray-200"></div>
+                             <button onClick={onNavigateToStatus} className="flex-1 py-3 mx-1 active:bg-gray-50 rounded-lg transition-colors hover:bg-gray-50">
+                                 <div className="flex justify-center mb-1 text-gray-600"><Clock size={20} /></div>
+                                 <span className="text-[10px] font-medium text-gray-700">App<br/>Status</span>
+                             </button>
+                        </div>
+                    </div>
+                    <div className="px-6 mt-8">
+                        <h3 className="flex items-center gap-2 font-bold text-gray-800 text-lg mb-4"><User size={20} className="text-[#003366]" /> Personal Details</h3>
+                        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-6">
+                            <div className="flex items-center gap-4"><div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400"><User size={20} /></div><div><p className="text-xs text-gray-400 font-medium">Full Name</p><p className="text-sm font-bold text-gray-800">{userProfile ? userProfile.name : '...'}</p></div></div>
+                            <div className="flex items-center gap-4"><div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400"><Phone size={20} /></div><div><p className="text-xs text-gray-400 font-medium">Mobile Number</p><p className="text-sm font-bold text-gray-800">{userProfile ? userProfile.phone : '...'}</p></div></div>
+                            <div className="flex items-center gap-4"><div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400"><MapPin size={20} /></div><div><p className="text-xs text-gray-400 font-medium">Location</p><p className="text-sm font-bold text-gray-800">{userProfile ? userProfile.district + ', ' + userProfile.state : '...'}</p></div></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const PortalStatusView = ({ userProfile, onBack }) => (
+            <div className="min-h-screen bg-white animate-fade-in flex flex-col font-sans pb-8">
+                <PortalHeader onBack={onBack} />
+                <div className="bg-[#003366] p-4 rounded-b-3xl mb-6 shadow-md text-white relative">
+                    <div className="relative z-10 flex justify-between items-center">
+                        <div><h2 className="text-xl font-bold">Welcome, {userProfile ? userProfile.name.split(' ')[0] : 'User'}!</h2><div className="flex items-center gap-2 mt-1"><span className="text-xs text-blue-100 opacity-80">ID: {userProfile ? userProfile.id : '...'}</span></div></div>
+                        <Avatar name={userProfile ? userProfile.name : 'U'} size="md" className="border-2 border-white/30" />
+                    </div>
+                </div>
+                <div className="px-4">
+                    <h3 className="font-bold text-gray-800 mb-4 text-lg">Your Applications</h3>
+                    <div className="space-y-4">
+                        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm"><div className="flex justify-between items-start mb-2"><h4 className="font-bold text-gray-800">PM Kisan Samman Nidhi</h4><span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><CheckCircle size={10} /> Approved</span></div><p className="text-[10px] text-gray-400 mb-3">App ID: APP-KCC-2023-001 • Oct 25, 2023</p><div className="bg-green-50 p-3 rounded-xl border border-green-100 flex gap-2 items-center"><CheckCircle size={16} className="text-green-600 shrink-0" /><p className="text-xs text-green-800 font-medium leading-tight">Installment credited to bank account.</p></div></div>
+                        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm"><div className="flex justify-between items-start mb-2"><h4 className="font-bold text-gray-800">Soil Health Card</h4><span className="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><Clock size={10} /> Pending</span></div><p className="text-[10px] text-gray-400 mb-3">App ID: APP-SHC-2023-045 • Nov 10, 2023</p><button className="w-full py-2 text-center text-blue-600 font-bold text-xs border border-blue-100 rounded-lg">View Details ›</button></div>
+                        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm"><div className="flex justify-between items-start mb-2"><div className="max-w-[70%]"><h4 className="font-bold text-gray-800 leading-tight">Agri Mechanization (SMAM)</h4></div><span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 whitespace-nowrap"><AlertCircle size={10} /> Action Required</span></div><p className="text-[10px] text-gray-400 mb-3">App ID: APP-SMAM-2024-112 • Jan 05, 2024</p><div className="bg-red-50 p-3 rounded-xl border border-red-100 flex gap-2 items-center mb-3"><AlertCircle size={16} className="text-red-600 shrink-0" /><p className="text-xs text-red-800 font-medium leading-tight">Please upload updated land document.</p></div><button className="w-full py-2.5 text-center bg-red-600 text-white font-bold text-xs rounded-lg shadow-sm shadow-red-200 flex justify-center items-center gap-1">Take Action <ChevronRight size={14} /></button></div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const DashboardView = ({ userProfile, officerMode, onNavigateToPortal }) => (
+            <div className="animate-fade-in bg-gray-50 min-h-screen pb-24">
+                {officerMode && <div className="bg-orange-50 text-orange-800 px-4 py-3 text-xs font-medium text-center border-b border-orange-100 sticky top-[60px] z-40 flex items-center justify-center gap-2 shadow-sm"><Lock size={12} /> Assisted Mode: Access Authorized via Biometric</div>}
+                <div className={`pt-6 pb-24 px-6 rounded-b-[2.5rem] shadow-lg relative overflow-hidden ${officerMode ? 'bg-[#003366]' : 'bg-[#003366]'}`}>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-xl"></div>
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-10 -mb-10 blur-xl"></div>
+                    <div className="flex justify-between items-start relative z-10">
+                        <div className="text-white"><h2 className="text-3xl font-bold tracking-tight">Welcome,</h2><h2 className="text-3xl font-bold mb-2">{userProfile ? userProfile.name.split(' ')[0] : 'User'}!</h2><div className="flex items-center gap-2 mt-2"><span className="text-blue-100 text-xs font-mono bg-white/20 px-2 py-1 rounded">ID: {userProfile ? userProfile.id : '...'}</span><span className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]"></span></div></div>
+                        <div className="bg-white rounded-full p-1 shadow-xl"><Avatar name={userProfile ? userProfile.name : 'U'} size="lg" className="border-0 shadow-none" /></div>
+                    </div>
+                </div>
+                <div className="px-4 -mt-16 relative z-20">
+                    <div className="bg-white rounded-2xl p-2 shadow-lg flex justify-between items-center text-center">
+                        <div className="flex-1 p-2 bg-blue-50 rounded-xl mx-1 active:bg-blue-100 transition-colors"><div className="flex justify-center mb-1"><User className="text-[#003366]" size={20} /></div><p className="text-[10px] font-bold text-[#003366] leading-tight">My Profile</p></div>
+                        <div className="w-[1px] h-8 bg-gray-200"></div>
+                        <button onClick={() => onNavigateToPortal('home')} className="flex-1 p-2 active:bg-gray-50 rounded-xl mx-1 transition-colors hover:bg-gray-50"><div className="flex justify-center mb-1"><FileText className="text-gray-500" size={20} /></div><p className="text-[10px] font-medium text-gray-600 leading-tight">Apply<br/>Schemes</p></button>
+                        <div className="w-[1px] h-8 bg-gray-200"></div>
+                        <button onClick={() => onNavigateToPortal('status')} className="flex-1 p-2 active:bg-gray-50 rounded-xl mx-1 transition-colors hover:bg-gray-50"><div className="flex justify-center mb-1"><Clock className="text-gray-500" size={20} /></div><p className="text-[10px] font-medium text-gray-600 leading-tight">App<br/>Status</p></button>
+                    </div>
+                </div>
+                <div className="px-4 mt-4 space-y-4">
+                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><User size={20} className="text-[#003366]" /> Personal Details</h3>
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-4 border-b border-gray-50 pb-3"><Avatar name={userProfile ? userProfile.name : 'U'} size="sm" /><div><p className="text-xs text-gray-400 font-medium">Full Name</p><p className="text-sm font-bold text-gray-800">{userProfile ? userProfile.name : '...'}</p></div></div>
+                            <div className="flex items-center gap-4 border-b border-gray-50 pb-3"><div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 shrink-0"><Phone size={20} /></div><div><p className="text-xs text-gray-400 font-medium">Mobile Number</p><p className="text-sm font-bold text-gray-800">{userProfile ? userProfile.phone : '...'}</p></div></div>
+                            <div className="flex items-center gap-4"><div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 shrink-0"><MapPin size={20} /></div><div><p className="text-xs text-gray-400 font-medium">Location</p><p className="text-sm font-bold text-gray-800">{userProfile ? userProfile.district + ', ' + userProfile.state : '...'}</p></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const PoSView = ({ onTransactionComplete, officerMode, user }) => {
+            const [mode, setMode] = useState('buy'); 
+            const [cart, setCart] = useState([]);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [isCheckingOut, setIsCheckingOut] = useState(false);
+            
+            // Modal States
+            const [showPaymentSelection, setShowPaymentSelection] = useState(false);
+            const [showCompliance, setShowCompliance] = useState(false);
+            const [showReceipt, setShowReceipt] = useState(false);
+            const [lastTransaction, setLastTransaction] = useState(null);
+            const [isScannerOpen, setScannerOpen] = useState(false);
+            const [notification, setNotification] = useState(null);
+
+            // Switch Inventory based on Mode (Buy Inputs vs Sell Mandi Crops)
+            const inventory = mode === 'buy' ? INPUT_INVENTORY : MARKET_DATA;
+
+            const addToCart = (item) => {
+                // 1. BUY MODE CHECKS (Soil Warning Logic)
+                if (mode === 'buy') {
+                    // Demo: Warn only if item.recommendedSoil exists AND doesn't include user's soil
+                    // Specifically set up for ID 103 (Maize) vs Alluvial user
+                    if (item.recommendedSoil && !item.recommendedSoil.includes(user.soilType)) {
+                        setNotification({ 
+                            type: 'error', 
+                            message: `Advisory: ${item.name} is not recommended for your ${user.soilType} soil.` 
+                        });
+                        // Note: We are allowing the add, just warning (as per standard advisory)
+                    }
+                }
+
+                // 2. SELL MODE CHECKS (Yield Logic Only)
+                if (mode === 'sell') {
+                    const maxYield = user.landArea * (item.maxYieldPerAcre || 0);
+                    const currentQty = cart.find(i => i.id === item.id)?.qty || 0;
+                    
+                    if (currentQty + 1 > maxYield) {
+                        setNotification({ 
+                            type: 'error', 
+                            message: `Compliance Block: Your land (${user.landArea} Acres) yield limit is ${Math.floor(maxYield)} Qtl for ${item.name}. Cannot sell more.` 
+                        });
+                        return; // Block addition
+                    }
+                }
+
+                const existing = cart.find(i => i.id === item.id);
+                if (existing) { setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i)); } else { setCart([...cart, { ...item, qty: 1 }]); }
+                setScannerOpen(false);
+            };
+
+            const updateQty = (id, delta) => {
+                setCart(cart.map(item => { if (item.id === id) { const newQty = Math.max(0, item.qty + delta); return { ...item, qty: newQty }; } return item; }).filter(i => i.qty > 0));
+            };
+
+            const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+
+            const handleCheckoutClick = () => {
+                setIsCheckingOut(true);
+                setTimeout(() => {
+                    setIsCheckingOut(false);
+                    // If buying DBT items, show compliance first
+                    if (mode === 'buy' && cart.some(i => i.isDBT)) {
+                        setShowCompliance(true);
+                    } else {
+                        setShowPaymentSelection(true);
+                    }
+                }, 500);
+            };
+
+            const handleComplianceSuccess = () => {
+                setShowCompliance(false);
+                setShowPaymentSelection(true);
+            }
+
+            const handlePaymentSuccess = (paymentMethod) => {
+                const tx = { 
+                    id: Date.now(), 
+                    type: mode, 
+                    items: cart, 
+                    total: cartTotal, 
+                    date: new Date().toISOString(),
+                    paymentMethod,
+                    officerMode
+                };
+                onTransactionComplete(tx);
+                setLastTransaction(tx);
+                setShowPaymentSelection(false);
+                setShowReceipt(true);
+                setCart([]);
+            };
+
+            return (
+                <div className="flex flex-col h-[calc(100vh-8rem)] bg-gray-50 relative">
+                    {/* MODALS */}
+                    {notification && <Notification message={notification.message} type={notification.type} onClose={() => setNotification(null)} />}
+                    {isScannerOpen && <QRScannerModal onClose={() => setScannerOpen(false)} onScan={addToCart} />}
+                    {showCompliance && <ComplianceModal cart={cart} farmer={user} onConfirm={handleComplianceSuccess} onClose={() => setShowCompliance(false)} />}
+                    {showPaymentSelection && <PaymentModeModal mode={mode} amount={cartTotal} user={user} onSelect={handlePaymentSuccess} onClose={() => setShowPaymentSelection(false)} isOfficerMode={officerMode} />}
+                    {showReceipt && <ReceiptModal transaction={lastTransaction} onClose={() => setShowReceipt(false)} user={user} />}
+
+                    <div className="p-4 bg-white sticky top-0 z-10 shadow-sm">
+                        <div className="flex bg-gray-100 p-1.5 rounded-xl">
+                            <button onClick={() => { setMode('buy'); setCart([]); }} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${mode === 'buy' ? 'bg-white shadow-sm text-[#003366]' : 'text-gray-500 hover:text-gray-700'}`}>Buy Inputs</button>
+                            <button onClick={() => { setMode('sell'); setCart([]); }} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${mode === 'sell' ? 'bg-white shadow-sm text-green-700' : 'text-gray-500 hover:text-gray-700'}`}>Sell Produce</button>
+                        </div>
+                        {mode === 'sell' && (
+                            <div className="mt-2 text-[10px] text-gray-500 flex items-center justify-center gap-1 bg-blue-50 py-1 rounded">
+                                <Leaf size={12}/> Yield Limit Active: Linked to ULPIN {user.ulpin} ({user.landArea} Acre)
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex-1 overflow-auto p-4 pb-32 no-scrollbar">
+                        <div className="relative mb-4">
+                            <div className="absolute left-4 top-3.5 text-gray-400"><Search size={18} /></div>
+                            <input type="text" placeholder={mode === 'buy' ? "Search fertilizers, seeds..." : "Search crops to sell..."} className="w-full pl-11 pr-12 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#003366] outline-none text-sm shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                            {officerMode && mode === 'buy' && (
+                                <button onClick={() => setScannerOpen(true)} className="absolute right-2 top-2 p-1.5 bg-[#003366] text-white rounded-lg shadow-md active:scale-95 transition-transform">
+                                    <QrCode size={20} />
+                                </button>
+                            )}
+                        </div>
+                        <div className="space-y-3">
+                            {inventory.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase())).map(item => (
+                                <Card key={item.id} className="flex justify-between items-center p-4 active:scale-[0.99] transition-transform">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="font-bold text-gray-800">{item.name}</h4>
+                                            {item.isDBT && <span className="bg-orange-100 text-orange-700 text-[10px] px-1.5 py-0.5 rounded font-bold border border-orange-200">DBT</span>}
+                                        </div>
+                                        <p className="text-xs text-gray-500 font-medium mt-1 bg-gray-100 inline-block px-2 py-0.5 rounded">₹{item.price} / {item.unit} {mode === 'sell' && item.trend && `(${item.trend})`}</p>
+                                        {mode === 'sell' && <p className="text-[10px] text-green-700 mt-1">Max sellable: {Math.floor(user.landArea * (item.maxYieldPerAcre || 0))} Qtl</p>}
+                                    </div>
+                                    <button onClick={() => addToCart(item)} className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${mode === 'buy' ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}><ChevronRight size={18} strokeWidth={2.5} /></button>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+
+                    {cart.length > 0 && (
+                        <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] p-5 animate-slide-up rounded-t-3xl z-20 max-w-md mx-auto">
+                            <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-gray-800 text-lg">Basket</h3><span className="text-xl font-bold text-[#003366]">₹{cartTotal.toLocaleString()}</span></div>
+                            <div className="max-h-32 overflow-auto mb-5 space-y-3 pr-2 no-scrollbar">
+                                {cart.map(item => (
+                                    <div key={item.id} className="flex justify-between items-center text-sm">
+                                        <span className="text-gray-700 font-medium truncate max-w-[50%]">{item.name}</span>
+                                        <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-1">
+                                            <button onClick={() => updateQty(item.id, -1)} className="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center text-gray-600 font-bold">-</button><span className="w-6 text-center font-medium">{item.qty}</span><button onClick={() => updateQty(item.id, 1)} className="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center text-gray-600 font-bold">+</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            {/* NEW: Pay & Collect Message */}
+                            {mode === 'buy' && (
+                                <div className="text-[10px] text-gray-500 text-center mb-3 bg-blue-50 py-1.5 rounded-lg flex items-center justify-center gap-1">
+                                    <Store size={12} className="text-blue-500"/> <span>Pay online now & collect items from store.</span>
+                                </div>
+                            )}
+
+                            <button onClick={handleCheckoutClick} disabled={isCheckingOut} className={`w-full py-3.5 rounded-2xl text-white font-bold text-lg flex justify-center items-center gap-2 shadow-lg shadow-blue-200 ${mode === 'buy' ? 'bg-[#003366] active:bg-blue-800' : 'bg-green-600 active:bg-green-700'}`}>
+                                {isCheckingOut ? <span className="animate-pulse">Processing...</span> : <><span>{mode === 'buy' ? 'Proceed to Pay' : 'Confirm Sale'}</span><ArrowRight size={20} /></>}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const MarketView = () => (
+            <div className="p-4 pb-24 bg-gray-50 min-h-screen">
+                <div className="mb-6"><h2 className="text-2xl font-bold text-gray-800">Mandi Prices</h2><p className="text-sm text-gray-500 mt-1">Live from e-NAM</p></div>
+                <div className="space-y-4">
+                    {MARKET_DATA.map((item) => (
+                        <Card key={item.id} className="flex justify-between items-center relative overflow-hidden">
+                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${item.trend === 'up' ? 'bg-green-500' : item.trend === 'down' ? 'bg-red-500' : 'bg-gray-300'}`}></div>
+                            <div className="flex items-center gap-4 pl-2"><div><h4 className="font-bold text-gray-800 text-lg">{item.name}</h4><p className="text-xs text-gray-500">Per {item.unit}</p></div></div>
+                            <div className="text-right"><p className="font-bold text-xl text-[#003366]">₹{item.price}</p><div className={`flex items-center justify-end gap-1 text-xs font-bold ${item.trend === 'up' ? 'text-green-600' : item.trend === 'down' ? 'text-red-600' : 'text-gray-500'}`}>{item.trend === 'up' && <TrendingUp size={14} />}{item.trend === 'down' && <TrendingUp size={14} className="rotate-180" />}{item.trend === 'up' ? '+2.4%' : item.trend === 'down' ? '-1.2%' : 'Stable'}</div></div>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        );
+
+        const ProfileView = ({ userProfile, transactions }) => (
+            <div className="p-4 pb-24 bg-gray-50 min-h-screen">
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 text-center mb-6">
+                    <div className="w-24 h-24 mx-auto mb-4"><Avatar name={userProfile ? userProfile.name : 'U'} size="xl" className="w-full h-full shadow-none border-dashed border-2 border-blue-200" /></div>
+                    <h2 className="text-xl font-bold text-gray-800">{userProfile ? userProfile.name : '...'}</h2>
+                    <p className="text-blue-600 font-medium text-sm">{userProfile ? userProfile.district + ', ' + userProfile.state : '...'}</p>
+                    <div className="mt-4 flex justify-center gap-2"><span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">KYC Verified</span><span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">Score: {userProfile ? userProfile.creditScore : '...'}</span></div>
+                </div>
+                
+                <h3 className="font-bold text-gray-800 mb-3 px-1">Linked Land Records</h3>
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6">
+                    <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-50">
+                        <span className="text-xs text-gray-500">ULPIN (Bhu-Aadhaar)</span>
+                        <span className="text-sm font-mono font-bold text-[#003366]">{userProfile?.ulpin || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-50">
+                        <span className="text-xs text-gray-500">Land Area</span>
+                        <span className="text-sm font-bold">{userProfile?.landArea || 0} Acres</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500">Soil Type (SHC)</span>
+                        <span className="text-sm font-bold text-green-600">{userProfile?.soilType || 'Unknown'}</span>
+                    </div>
+                </div>
+
+                <div className="space-y-6">
+                    <section>
+                        <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2"><History size={18} className="text-blue-600" /> Transaction History</h3>
+                        {transactions.length === 0 ? <div className="text-center py-12 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200"><div className="bg-gray-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2"><History size={20} opacity={0.5} /></div>No recent transactions</div> : 
+                            <div className="space-y-3">{transactions.map(tx => (<div key={tx.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center"><div><p className="text-sm font-bold text-gray-800">{tx.type === 'buy' ? 'Input Purchase' : 'Produce Sale'}</p><p className="text-xs text-gray-400">{new Date(tx.date).toLocaleDateString()}</p></div><div className="text-right"><p className={`font-bold text-base ${tx.type === 'sell' ? 'text-green-600' : 'text-gray-800'}`}>{tx.type === 'sell' ? '+' : '-'}₹{tx.total.toLocaleString()}</p></div></div>))}</div>}
+                    </section>
+                </div>
+            </div>
+        );
+
+        const OfficerDashboard = ({ onSelectFarmer }) => {
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterPanchayat, setFilterPanchayat] = useState('All');
+            const [authModal, setAuthModal] = useState(null); 
+            const [isScanning, setIsScanning] = useState(false);
+            const [authMethod, setAuthMethod] = useState('biometric');
+            const [manualAadhaar, setManualAadhaar] = useState('');
+            const [otp, setOtp] = useState('');
+            const panchayats = ['All', ...new Set(FARMER_DB.map(f => f.panchayat))];
+
+            const handleAuth = (farmer) => { 
+                setIsScanning(true); 
+                setTimeout(() => { 
+                    setIsScanning(false); 
+                    setAuthModal(null); 
+                    setAuthMethod('biometric');
+                    setOtp('');
+                    setManualAadhaar('');
+                    onSelectFarmer(farmer); 
+                }, 2000); 
+            };
+
+            const openAuthModal = (farmer) => {
+                setAuthModal(farmer);
+                setAuthMethod('biometric');
+                setOtp('');
+                setManualAadhaar('');
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-50 animate-fade-in pb-20 relative">
+                    {authModal && (
+                        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm text-center animate-slide-up">
+                                <div className={`w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 ${isScanning && authMethod === 'biometric' ? 'animate-pulse-ring' : ''}`}>
+                                    {authMethod === 'biometric' ? <Fingerprint size={40} /> : (authMethod === 'aadhaar_input' ? <Keypad size={40} /> : <MessageSquare size={40} />)}
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800 mb-2">
+                                    {authMethod === 'biometric' ? 'Aadhaar Authentication' : (authMethod === 'aadhaar_input' ? 'Manual Verification' : 'OTP Verification')}
+                                </h3>
+                                <p className="text-sm text-gray-500 mb-2">Farmer: <span className="font-bold text-gray-800">{authModal.name}</span></p>
+                                
+                                {authMethod === 'biometric' && (
+                                    <>
+                                        <div className="flex justify-center mb-6">
+                                            <div className="border-2 border-dashed border-indigo-200 rounded-lg p-6 w-32 h-32 flex items-center justify-center bg-indigo-50 relative overflow-hidden">
+                                                {isScanning && <div className="absolute w-full h-1 bg-indigo-500 animate-scan"></div>}
+                                                <Fingerprint size={48} className="text-indigo-400" />
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-gray-400 mb-6">Ask farmer to place finger on scanner</p>
+                                        
+                                        {isScanning ? (
+                                            <div className="space-y-2">
+                                                <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-indigo-600 animate-[width_2s_ease-in-out_infinite]" style={{width: '60%'}}></div>
+                                                </div>
+                                                <p className="text-xs text-indigo-600 font-mono">Connecting to UIDAI Server...</p>
+                                            </div>
+                                        ) : (
+                                            <button onClick={() => handleAuth(authModal)} className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold text-lg shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2">Scan Fingerprint</button>
+                                        )}
+                                        {!isScanning && (
+                                            <button onClick={() => setAuthMethod('aadhaar_input')} className="text-indigo-600 text-sm mt-4 font-medium hover:underline flex items-center justify-center gap-1 w-full">Biometric not working? Use Aadhaar OTP</button>
+                                        )}
+                                    </>
+                                )}
+
+                                {authMethod === 'aadhaar_input' && (
+                                    <div className="animate-fade-in w-full text-left">
+                                        <label className="text-xs font-bold text-gray-700 uppercase mb-2 block">Enter Aadhaar Number</label>
+                                        <input type="text" placeholder="XXXX XXXX XXXX" className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4 font-mono focus:border-indigo-500 outline-none focus:ring-2 focus:ring-indigo-200" value={manualAadhaar} onChange={(e) => setManualAadhaar(e.target.value)} />
+                                        <button onClick={() => { setIsScanning(true); setTimeout(() => { setIsScanning(false); setAuthMethod('otp'); }, 1000); }} disabled={manualAadhaar.length < 4 || isScanning} className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all hover:bg-indigo-700">{isScanning ? 'Sending...' : 'Send OTP'}</button>
+                                        <button onClick={() => setAuthMethod('biometric')} className="text-gray-400 text-sm mt-4 hover:text-gray-600 flex items-center justify-center gap-1 w-full">Cancel & Back</button>
+                                    </div>
+                                )}
+
+                                {authMethod === 'otp' && (
+                                    <div className="animate-fade-in w-full">
+                                        <div className="bg-blue-50 p-3 rounded-lg mb-4 text-left border border-blue-100">
+                                            <p className="text-xs text-blue-800 font-bold mb-1 flex items-center gap-1"><CheckCircle size={12}/> OTP Sent</p>
+                                        </div>
+                                        {isScanning ? (
+                                             <div className="space-y-2 mb-4"><div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-indigo-600 animate-[width_2s_ease-in-out_infinite]" style={{width: '60%'}}></div></div><p className="text-xs text-indigo-600 font-mono">Verifying OTP...</p></div>
+                                        ) : (
+                                            <input type="text" placeholder="Enter 6-digit OTP" className="w-full text-center text-2xl tracking-widest border border-gray-300 rounded-xl py-3 mb-4 font-mono focus:border-indigo-500 outline-none focus:ring-2 focus:ring-indigo-200" maxLength="6" value={otp} onChange={(e) => setOtp(e.target.value)} />
+                                        )}
+                                        <button onClick={() => handleAuth(authModal)} disabled={otp.length !== 6 || isScanning} className={`w-full py-3.5 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all ${otp.length === 6 && !isScanning ? 'bg-indigo-600 text-white shadow-indigo-200 hover:bg-indigo-700 active:scale-95' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Verify OTP</button>
+                                    </div>
+                                )}
+                                <button onClick={() => setAuthModal(null)} className="mt-4 text-sm text-gray-400 hover:text-gray-600 underline">Close</button>
+                            </div>
+                        </div>
+                    )}
+                    <div className="bg-[#003366] text-white p-6 rounded-b-3xl shadow-lg mb-6"><div className="flex justify-between items-start mb-4"><div><h2 className="text-2xl font-bold">Officer Dashboard</h2><p className="text-indigo-200 text-sm">Vidisha District • Zone 4</p></div><button className="bg-white/10 p-2 rounded-lg text-white/80"><Scan size={24} /></button></div><div className="space-y-3"><div className="relative"><Search className="absolute left-3 top-3.5 text-indigo-300" size={18} /><input type="text" placeholder="Search Name, ID or Phone..." className="w-full pl-10 pr-4 py-3 bg-indigo-800/50 border border-indigo-700 rounded-xl text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div><div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">{panchayats.map(p => (<button key={p} onClick={() => setFilterPanchayat(p)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${filterPanchayat === p ? 'bg-white text-[#003366]' : 'bg-indigo-800 text-indigo-200 border border-indigo-700'}`}>{p}</button>))}</div></div></div>
+                    <div className="px-4 space-y-4">{FARMER_DB.filter(f => (filterPanchayat === 'All' || f.panchayat === filterPanchayat) && (f.name.toLowerCase().includes(searchTerm.toLowerCase()) || f.id.includes(searchTerm))).map(farmer => (<div key={farmer.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 active:scale-[0.99] transition-transform"><Avatar name={farmer.name} /><div className="flex-1"><h4 className="font-bold text-gray-800">{farmer.name}</h4><p className="text-xs text-gray-500">{farmer.panchayat} • {farmer.district}</p><p className="text-[10px] text-gray-400 font-mono mt-0.5">{farmer.id}</p></div><button onClick={() => openAuthModal(farmer)} className="bg-[#003366] text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md shadow-indigo-200 hover:bg-blue-900"><ChevronRight size={20} /></button></div>))}</div>
+                </div>
+            );
+        };
+
+        const LoginView = ({ onLogin }) => {
+            const [step, setStep] = useState(0);
+            const [farmerId, setFarmerId] = useState('AGRI-MP-123456');
+            const [otp, setOtp] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            const handleContinue = () => { if (!farmerId) return; setLoading(true); setTimeout(() => { setLoading(false); setStep(1); }, 1000); };
+            const handleVerify = () => { setLoading(true); setTimeout(() => { setLoading(false); const user = FARMER_DB.find(f => f.id === farmerId) || FARMER_DB[0]; onLogin('farmer', user); }, 1500); };
+
+            return (
+                <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 animate-fade-in relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-64 bg-[#003366] rounded-b-[40%]"></div>
+                    <div className="z-10 bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm text-center border border-gray-100">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="Emblem" className="w-12 h-auto mx-auto mb-4 opacity-80" />
+                        <h1 className="text-2xl font-bold text-gray-900 mb-1">Point of Sale App</h1>
+                        <p className="text-sm text-gray-500 mb-8">Digital Agriculture Mission</p>
+                        <div className="text-left space-y-4">
+                            {step === 0 ? (
+                                <div className="animate-fade-in">
+                                    <label className="text-xs font-bold text-gray-700 uppercase mb-2 block">Farmer ID <span className="text-gray-400 font-normal normal-case">OR</span> Aadhaar Number</label>
+                                    <div className="relative mb-4"><div className="absolute left-3 top-3.5 text-gray-400"><User size={18} /></div><input type="text" value={farmerId} onChange={(e) => setFarmerId(e.target.value)} placeholder="Ex: AGRI-1234 or 1234 5678" className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#003366] outline-none text-sm transition-all" /></div>
+                                    <button onClick={handleContinue} disabled={loading} className="w-full bg-[#003366] text-white py-3.5 rounded-xl font-bold text-lg shadow-lg hover:bg-blue-900 transition-colors flex items-center justify-center gap-2">{loading ? 'Verifying...' : <>Continue <ArrowRight size={20} /></>}</button>
+                                </div>
+                            ) : (
+                                <div className="animate-slide-up">
+                                    <div className="bg-blue-50 p-3 rounded-lg mb-4 border border-blue-100"><p className="text-xs text-blue-800 font-bold mb-1">OTP Sent to Mobile</p><p className="text-[10px] text-blue-600">Enter the 4-digit code sent to +91 ******3210</p></div>
+                                    <div className="flex justify-center gap-3 mb-6">{[0, 1, 2, 3].map((_, i) => (<input key={i} type="text" maxLength="1" className="w-12 h-14 border border-gray-300 rounded-xl text-center text-2xl font-bold focus:border-[#003366] focus:ring-2 focus:ring-blue-100 outline-none" value={otp[i] || ''} onChange={(e) => { const val = e.target.value; if (val.length <= 1) { const newOtp = otp.split(''); newOtp[i] = val; setOtp(newOtp.join('')); if (val && i < 3) document.querySelectorAll('input[type="text"]')[i + 2]?.focus(); } }} />))}</div>
+                                    <button onClick={handleVerify} disabled={otp.length < 4 || loading} className="w-full bg-green-600 text-white py-3.5 rounded-xl font-bold text-lg shadow-lg shadow-green-200 hover:bg-green-700 transition-colors flex items-center justify-center gap-2">{loading ? 'Logging in...' : 'Verify & Login'}</button>
+                                </div>
+                            )}
+                            {step === 0 && (
+                                <><div className="relative flex items-center py-2"><div className="flex-grow border-t border-gray-200"></div><span className="flex-shrink-0 mx-4 text-gray-400 text-xs">OFFICIAL USE ONLY</span><div className="flex-grow border-t border-gray-200"></div></div><button onClick={() => onLogin('officer', null)} className="w-full bg-indigo-50 text-indigo-900 py-3.5 rounded-xl font-bold text-lg hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2 border border-indigo-100"><ShieldCheck size={20} /> Officer Login</button></>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const App = () => {
+            const [viewState, setViewState] = useState('login'); 
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [transactions, setTransactions] = useState([]);
+            const [currentUser, setCurrentUser] = useState(null);
+            const [isOfficerMode, setIsOfficerMode] = useState(false);
+
+            useEffect(() => {
+                if (currentUser && currentUser.history) { setTransactions(currentUser.history); } else { setTransactions([]); }
+            }, [currentUser]);
+
+            const handleLogin = (role, userData) => { if (role === 'farmer') { setCurrentUser(userData); setIsOfficerMode(false); setViewState('farmer_dash'); } else if (role === 'officer') { setViewState('officer_dash'); setIsOfficerMode(true); } };
+            const handleLogout = () => { if (isOfficerMode && viewState === 'farmer_dash') { setViewState('officer_dash'); setCurrentUser(null); } else { setViewState('login'); setCurrentUser(null); setIsOfficerMode(false); } };
+            const handleNavigateToPortal = (page) => { if(page === 'status') setViewState('portal_status'); else if(page === 'schemes') setViewState('portal_schemes'); else setViewState('portal_home'); };
+            const handleBackFromPortal = () => { setViewState('farmer_dash'); };
+
+            if (viewState === 'login') return <LoginView onLogin={handleLogin} />;
+            if (viewState === 'portal_home') return <PortalDashboardView userProfile={currentUser} onBack={handleBackFromPortal} onNavigateToStatus={() => setViewState('portal_status')} onNavigateToSchemes={() => setViewState('portal_schemes')} />;
+            if (viewState === 'portal_status') return <PortalStatusView userProfile={currentUser} onBack={handleBackFromPortal} />;
+            if (viewState === 'portal_schemes') return <PortalSchemesView onBack={handleBackFromPortal} />;
+            if (viewState === 'officer_dash') return <div className="flex justify-center min-h-screen"><div className="w-full max-w-md bg-gray-50 shadow-2xl relative min-h-screen flex flex-col"><Header officerMode={true} onLogout={handleLogout} /><OfficerDashboard onSelectFarmer={(farmer) => { setCurrentUser(farmer); setViewState('farmer_dash'); }} /></div></div>;
+
+            return (
+                <div className="flex justify-center min-h-screen">
+                    <div className="w-full max-w-md bg-white shadow-2xl relative min-h-screen flex flex-col">
+                        <Header officerMode={isOfficerMode} onLogout={handleLogout} />
+                        <main className="flex-1">
+                            {activeTab === 'dashboard' ? <DashboardView userProfile={currentUser} officerMode={isOfficerMode} onNavigateToPortal={handleNavigateToPortal} /> : 
+                             activeTab === 'pos' ? <PoSView onTransactionComplete={(tx) => setTransactions([tx, ...transactions])} officerMode={isOfficerMode} user={currentUser} /> :
+                             activeTab === 'market' ? <MarketView /> :
+                             <ProfileView userProfile={currentUser} transactions={transactions} />
+                            }
+                        </main>
+                        <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
+                    </div>
+                </div>
+            );
+        };
+        
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
